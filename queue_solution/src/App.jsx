@@ -5,7 +5,7 @@ import Interpreter from './services/interpreter'
 
 function App() {
   const [stack, setStack] = useState([]) // Empty stack
-  const [programCounterStack, setProgramCounterStack] = useState([]) // Empty program counter stack
+  const [stackPointer, setStackPointer] = useState([])
   const [delay, setDelay] = useState(1)
   const [output, setOutput] = useState('')
   const [code, setCode] = useState('')
@@ -20,10 +20,10 @@ function App() {
     try {
       // Compile the code
       const compiler = new Compiler()
-      const funcLineMap = compiler.compile(code, setOutput)
+      const funcLineMap = compiler.compile(code)
 
       // Run the code
-      const interpreter = new Interpreter(setStack, setOutput, setProgramCounterStack)
+      const interpreter = new Interpreter(setStack, setOutput)
       await interpreter.run(code, funcLineMap, delay * 1000)
       setStack([])
     } catch (error) {
@@ -77,7 +77,7 @@ function App() {
               </div>
               <div className="w-full h-96 p-4 bg-gray-100 rounded-md">
                 <div className="flex flex-row space-x-2">
-                  <span className="text-gray-600 whitespace-pre-wrap">{output || "Click on 'Run' button to get the output."}</span>
+                  <span className="text-gray-400">{output || "Click on 'Run' button to get the output."}</span>
                 </div>
               </div>
             </div>
@@ -92,16 +92,16 @@ function App() {
               </div>
               <div className="flex flex-col h-96 p-4 bg-gray-100 px-20 py-5 rounded-md">
                 <div className="flex flex-row flex-grow space-x-5">
-                  <div className='w-32 rounded-lg bg-gray-50 text-black border border-black'>
-                    {programCounterStack.map((counter, index) => (
-                      <div key={index} className='flex flex-col p-2 items-center justify-center border border-b-gray-400'>
-                        <span>{counter}</span>
+                  <div className='w-32 rounded-lg bg-gray-50 text-black'>
+                    {stackPointer.map((pointer, index) => (
+                      <div key={index} className='flex flex-col items-center justify-center h-16'>
+                        <span>{stack[pointer]}</span>
                       </div>
                     ))}
                   </div>
                   <div className='w-full rounded-lg bg-gray-50 text-black border border-black'>
                     {stack.map((item, index) => (
-                      <div key={index} className='flex flex-col p-2 items-center justify-center border border-b-gray-400'>
+                      <div key={index} className='flex flex-col p-2 items-center justify-center border border-gray-400'>
                         <span>{item.name}</span>
                       </div>
                     ))}

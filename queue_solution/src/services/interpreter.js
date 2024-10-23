@@ -18,14 +18,14 @@ function delayHelper(ms) {
 }
 
 class Interpreter {
-
-  constructor(setUIStack, setUIOutput, setUIPCStack) {
+  setUIStack = null;
+  setUIOutput = null;
+  constructor(setUIStack, setUIOutput) {
     this.lines = [];
     this.stack = [];
     this.output = '';
     this.setUIStack = setUIStack;
     this.setUIOutput = setUIOutput;
-    this.setUIPCStack = setUIPCStack;
   }
 
   isStackEmpty() {
@@ -77,7 +77,6 @@ class Interpreter {
     while (!this.isStackEmpty()) {
       const currentFuncStackCall = this.getCurrentFuncStackCall();
       this.programCounter = funcLineMap[currentFuncStackCall.name] + 1;
-
       while (this.programCounter != -1) {
         const line = this.lines[this.programCounter].trim();
         if (this.toBeSkipped()) {
@@ -101,7 +100,6 @@ class Interpreter {
             break;
           } else {
             this.programCounter = this.pcStack.pop() + 1;
-            this.setUIPCStack(this.pcStack);
           }
         } else {
           if (funcLineMap[command] === undefined) {
@@ -110,7 +108,6 @@ class Interpreter {
           this.checkRecursiveFunction(command);
           this.stack.push({ name: command, line: this.programCounter });
           this.pcStack.push(this.programCounter);
-          this.setUIPCStack(this.pcStack);
           this.setUIStack(this.stack);
           break;
         }

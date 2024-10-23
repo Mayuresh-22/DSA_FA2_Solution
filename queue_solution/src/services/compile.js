@@ -13,14 +13,12 @@ class Compiler {
     this.funcLineMap = {};
   }
 
-  compile(code, setUIOutput) {
-    setUIOutput('Compiling code... \n');
+  compile(code) {
+    console.log('code', code);
+
     const lines = code.split('\n');
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
-      
-      if (line === '') continue;
-
       const tokens = line.split(' ');
       const command = tokens[0].trim();
       if (command === TOKENS.FUNC) {
@@ -29,11 +27,8 @@ class Compiler {
           throw new Error('Compilation Error: Expected valid function got ' + functionName);
         }
         this.funcLineMap[functionName] = i;
-      } else if (command !== TOKENS.PRINT && command !== TOKENS.RET && (command !== TOKENS.CURRLY_OPEN && command !== TOKENS.CURRLY_CLOSE)  && tokens[1]?.trim() !== `${TOKENS.OPEN_PAREN}${TOKENS.CLOSE_PAREN}`) {
-        throw new Error('Compilation Error: Expected function or print got ' + tokens);
       }
     }
-    setUIOutput('Code compiled successfully \n');
     return this.funcLineMap;
   }
 
