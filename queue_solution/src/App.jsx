@@ -1,113 +1,199 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Button from './components/ui/button'
-import Compiler from './services/compile'
-import Interpreter from './services/interpreter'
+import CPU from './services/cpu'
+import IO from './services/io'
+import Scheduler from './services/scheduler'
 
 function App() {
-  const [stack, setStack] = useState([]) // Empty stack
-  const [stackPointer, setStackPointer] = useState([])
-  const [delay, setDelay] = useState(1)
+  const [cpu, setCPU] = useState('')
+  const [io, setIO] = useState('')
+  const [readyQueue, setReadyQueue] = useState([])
+  const [endQueue, setEndQueue] = useState([])
+  const [ioQueue, setIOQueue] = useState([])
+  const [jobName, setJobName] = useState('')
+  const [jobCPUTime, setJobCPUTime] = useState('')
+  const [jobIOTime, setJobIOTime] = useState('')
   const [output, setOutput] = useState('')
-  const [code, setCode] = useState('')
+  const [cpuMsg, setCPUMsg] = useState('')
+  const [ioMsg, setIOMsg] = useState('')
 
-  const handleCompileRunBtn = async () => {
-    if (!code) {
-      setOutput('Please enter some code to run.')
+  const handleJobAdd = async () => {
+    if (!jobName || !jobCPUTime || !jobIOTime) {
+      setOutput('Please enter Job name/cpu/io')
       return
     }
     setOutput('')
-    setStack([])
-    try {
-      // Compile the code
-      const compiler = new Compiler()
-      const funcLineMap = compiler.compile(code)
 
-      // Run the code
-      const interpreter = new Interpreter(setStack, setOutput)
-      await interpreter.run(code, funcLineMap, delay * 1000)
-      setStack([])
-    } catch (error) {
-      setOutput(error.message)
+    const job = {
+      name: jobName,
+      cpuTime: parseInt(jobCPUTime),
+      ioTime: parseInt(jobIOTime)
     }
+
+    let newReadyQueue = []
+    let isAdded = false
+
+    if (readyQueue.length === 0) {
+      newReadyQueue.push(job)
+      setReadyQueue(newReadyQueue)
+      return
+    }
+    for (let i = 0; i < readyQueue.length; i++) {
+      if ((readyQueue[i].cpuTime >= job.cpuTime) && !isAdded) {
+        newReadyQueue.push(job)
+        isAdded = true
+      }
+      newReadyQueue.push(readyQueue[i])
+    }
+    if (!isAdded) {
+      newReadyQueue.push(job)
+    }
+    setReadyQueue(newReadyQueue)
   }
+
+  const handleStart = async () => {
+    if (readyQueue.length === 0) {
+      setOutput('Please add jobs to the ready queue')
+      return
+    }
+    setCPUMsg('')
+    setIOMsg('')
+    const scheduler = new Scheduler(cpu, io, readyQueue, setReadyQueue, ioQueue, setIOQueue, endQueue, setEndQueue, 5000)
+    await scheduler.run()
+    setCPUMsg('')
+    setIOMsg('')
+  }
+
+  useEffect(() => {
+    // initialize cpu, io, and scheduler
+    setCPU(new CPU(setCPUMsg, 2000))
+    setIO(new IO(setIOMsg, 2000))
+  }, [])
 
   return (
     <div className="lora-font flex flex-col min-h-screen">
       <header className="flex flex-col items-center justify-between px-6 py-4 bg-background shadow-sm">
-        <span className="text-xl font-bold">Function calling visualisation with Stack</span>
+        <span className="text-xl font-bold">Queue based simulation of CPU Scheduling Algorithms</span>
       </header>
-
+      <span className="mt-10 text-red-600 text-md text-center">{output}</span>
+      {/* Main container for the diagram */}
       <main className="flex flex-grow">
-        <div className="flex-grow p-6 md:p-12 flex flex-col md:flex-row gap-6">
-          <div className="flex flex-col w-full max-w-screen-lg space-y-5">
-            {/* code editor */}
-            <div className="flex flex-col w-full space-y-2">
-              <div className="items-center justify-between">
-                <span className="text-lg font-bold">Code Editor</span>
+        <div className="flex-grow justify-center p-6 md:p-12 flex flex-col md:flex-row gap-6">
+          <div className="flex flex-col w-full max-w-screen-xl space-y-16">
+            {/* read and end queue */}
+            <div className="flex flex-row w-full justify-between space-x-5">
+              <div className="flex flex-col flex-grow max-w-md min-w-md space-y-2">
+                <div className="items-center justify-between">
+                  <span className="text-lg font-bold">Ready queue</span>
+                </div>
+                <div
+                  className="flex flex-row w-full h-16 bg-gray-100 rounded-md border border-gray-500">
+                  {
+                    readyQueue.map((job, index) => (
+                      <div key={index} className="flex flex-row border border-r-gray-500 justify-between">
+                        <div className="flex flex-row justify-center items-center space-x-2 p-1">
+                          <span>{job.name}</span>
+                          <span>{job.cpuTime}</span>
+                          <span>{job.ioTime}</span>
+                        </div>
+                      </div>
+                    ))
+                  }
+                </div>
+                {/* action buttons */}
+                <div className="flex flex-row justify-between">
+                  <div className="space-x-2">
+                    <input
+                      value={jobName}
+                      type="text"
+                      maxLength="1"
+                      minLength="1"
+                      onChange={e => setJobName(e.target.value.toUpperCase())}
+                      className="w-14 p-2 border border-gray-400 rounded-md"
+                      placeholder="Job" />
+                    <input
+                      value={jobCPUTime}
+                      type="text"
+                      maxLength="1"
+                      minLength="1"
+                      onChange={e => setJobCPUTime(e.target.value.toUpperCase())}
+                      className="w-14 p-2 border border-gray-400 rounded-md"
+                      placeholder="CPU cycle" />
+                    <input
+                      value={jobIOTime}
+                      type="text"
+                      maxLength="1"
+                      minLength="1"
+                      onChange={e => setJobIOTime(e.target.value)}
+                      className="w-14 p-2 border border-gray-400 rounded-md"
+                      placeholder="I/O" />
+                  </div>
+                  <Button onClick={handleJobAdd}>
+                    Add
+                  </Button>
+                </div>
               </div>
-              <textarea
-                className="w-full h-96 p-4 bg-gray-100 rounded-md"
-                placeholder="Type your code here"
-                value={code}
-                onChange={e => setCode(e.target.value)}></textarea>
-              {/* action buttons */}
-              <div className="flex flex-row justify-between">
-                <input
-                  value={delay}
-                  type="number"
-                  min="1"
-                  max="5"
-                  onChange={e => {
-                    if (e.target.value < 1) setDelay(1)
-                    else if (e.target.value > 5) setDelay(5)
-                    else setDelay(e.target.value)
-                  }}
-                  className="w-20 p-2 border border-gray-400 rounded-md"
-                  placeholder="Delay" />
-                <Button onClick={handleCompileRunBtn}>
-                  Compile & Run
-                </Button>
-              </div>
-            </div>
-
-            {/* terminal */}
-            <div className="flex flex-col w-full space-y-2">
-              <div className="items-center justify-between">
-                <span className="text-lg font-bold">Terminal</span>
-              </div>
-              <div className="w-full h-96 p-4 bg-gray-100 rounded-md">
-                <div className="flex flex-row space-x-2">
-                  <span className="text-gray-400">{output || "Click on 'Run' button to get the output."}</span>
+              <div className="max-w-md min-w-md flex flex-col flex-grow space-y-2">
+                <div className="items-center justify-between">
+                  <span className="text-lg font-bold">End queue</span>
+                </div>
+                <div className="flex flex-row w-full h-16 bg-gray-100 rounded-md border border-gray-500">
+                  {
+                    endQueue.map((job, index) => (
+                      <div key={index} className="flex flex-row border border-r-gray-500 justify-between">
+                        <div className="flex flex-row justify-center items-center space-x-2 p-1">
+                          <span>{job.name}</span>
+                          <span>{job.cpuTime}</span>
+                          <span>{job.ioTime}</span>
+                        </div>
+                      </div>
+                    ))
+                  }
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* memory, stack */}
-          <div className="flex-1 flex-col w-full max-w-screen-lg space-y-5">
-            {/* memory */}
-            <div className="flex flex-col w-full space-y-2">
-              <div className="items-center justify-between">
-                <span className="text-lg font-bold">Function Call Stack</span>
+            {/* cpu */}
+            <div className="flex flex-col w-full items-center justify-center">
+              <div className="w-96 h-96 p-4 bg-blue-50 border border-blue-200 rounded-full flex flex-col justify-center text-center">
+                <span>CPU</span>
+                <span className="whitespace-pre-wrap text-lg">{cpuMsg}</span>
               </div>
-              <div className="flex flex-col h-96 p-4 bg-gray-100 px-20 py-5 rounded-md">
-                <div className="flex flex-row flex-grow space-x-5">
-                  <div className='w-32 rounded-lg bg-gray-50 text-black'>
-                    {stackPointer.map((pointer, index) => (
-                      <div key={index} className='flex flex-col items-center justify-center h-16'>
-                        <span>{stack[pointer]}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className='w-full rounded-lg bg-gray-50 text-black border border-black'>
-                    {stack.map((item, index) => (
-                      <div key={index} className='flex flex-col p-2 items-center justify-center border border-gray-400'>
-                        <span>{item.name}</span>
-                      </div>
-                    ))}
-                  </div>
+            </div>
+
+            {/* I/O queue */}
+            <div className="flex flex-row w-full justify-center">
+              <div className="flex flex-col flex-grow max-w-md min-w-md space-y-2">
+                <div className="w-32 h-32 p-4 bg-blue-50 border border-blue-200 rounded-full flex flex-col justify-center text-center">
+                  <span>I/O</span>
+                  <span className="whitespace-pre-wrap text-sm">{ioMsg}</span>
                 </div>
               </div>
+              <div className="max-w-md min-w-md flex flex-col flex-grow space-y-2">
+                <div className="items-center justify-between">
+                  <span className="text-lg font-bold">I/O wait queue</span>
+                </div>
+                <div className="flex flex-row w-full h-16 bg-gray-100 rounded-md border border-gray-500">
+                  {
+                    ioQueue.map((job, index) => (
+                      <div key={index} className="flex flex-row border border-r-gray-500 justify-between">
+                        <div className="flex flex-row justify-center items-center space-x-2 p-1">
+                          <span>{job.name}</span>
+                          <span>{job.cpuTime}</span>
+                          <span>{job.ioTime}</span>
+                        </div>
+                      </div>
+                    ))
+                  }
+                </div>
+              </div>
+            </div>
+
+            {/* start button */}
+            <div className="flex flex-row justify-center">
+              <Button onClick={handleStart} className="bg-gray-900">
+                Start
+              </Button>
             </div>
           </div>
         </div>
