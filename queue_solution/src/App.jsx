@@ -58,7 +58,7 @@ function App() {
     }
     setCPUMsg('')
     setIOMsg('')
-    const scheduler = new Scheduler(cpu, io, readyQueue, setReadyQueue, ioQueue, setIOQueue, endQueue, setEndQueue, 5000)
+    const scheduler = new Scheduler(cpu, io, readyQueue, setReadyQueue, ioQueue, setIOQueue, endQueue, setEndQueue, 5000, setCPUMsg, setIOMsg)
     await scheduler.run()
     setCPUMsg('')
     setIOMsg('')

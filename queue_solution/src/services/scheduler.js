@@ -3,7 +3,7 @@
 import { uiDelay } from "./helper";
 
 class Scheduler {
-  constructor(cpu, io, readyQueue, setUIReadyQueue, ioQueue, setUIIOQueue, endQueue, setUIEndQueue, delay) {
+  constructor(cpu, io, readyQueue, setUIReadyQueue, ioQueue, setUIIOQueue, endQueue, setUIEndQueue, delay, setUICPUmsg, setUIIOMsg) {
     this.cpu = cpu;
     this.io = io;
     this.readyQueue = readyQueue;
@@ -13,46 +13,50 @@ class Scheduler {
     this.endQueue = endQueue;
     this.setUIEndQueue = setUIEndQueue;
     this.delay = delay;
+    this.setUICPUmsg = setUICPUmsg;
+    this.setUIIOMsg = setUIIOMsg;
   }
 
   async run() {
-    while (this.readyQueue.length > 0) {
-
+    do {
       await uiDelay(this.delay);
+      const task = this.dequeue();
+      await this.cpu.run(task);
+      await uiDelay(this.delay);
+      
+      if (task.cpuTime === 0 && task.ioTime === 0) {
+        this.endQueue.push(task);
+        this.setUIEndQueue(this.endQueue);
 
-      for (let i = 0; i < this.readyQueue.length; i++) {
-        const task = this.dequeue();
-        await this.cpu.run(task);
-        await uiDelay(this.delay);
-        
-        if (task.cpuTime === 0 && task.ioTime === 0) {
-          this.endQueue.push(task);
-          this.setUIEndQueue(this.endQueue);
+      } else if (task.cpuTime === 0 || task.ioTime !== 0) {
+        this.ioQueue.push(task);
+        this.setUIIOQueue(this.ioQueue);
+        await this.io.run(task);
+        const ioTask = this.ioDequeue();
+        console.log("IO Task deq: ", ioTask);
+        await this.enqueue(ioTask);
 
-        } else if (task.cpuTime === 0 || task.ioTime !== 0) {
-          this.ioQueue.push(task);
-          this.setUIIOQueue(this.ioQueue);
-          await this.io.run(task);
-          const ioTask = this.ioDequeue();
-          console.log("IO Task deq: ", ioTask);
-          this.enqueue(ioTask);
-
-        } else {
-          this.enqueue(task);
-        }
-        
-        await uiDelay(this.delay);
-      };
-    }
+      } else {
+        await this.enqueue(task);
+      }
+      // clear output msgs
+      this.setUIIOMsg('');
+      this.setUICPUmsg('');
+    } while (!this.isReadyQueueEmpty());
   }
 
-  enqueue(task) {
+  isReadyQueueEmpty() {
+    return this.readyQueue.length === 0;
+  }
+
+  async enqueue(task) {
     let newReadyQueue = []
     let isAdded = false
 
     if (this.readyQueue.length === 0) {
       newReadyQueue.push(task)
-      this.setUIReadyQueue(newReadyQueue)
+      this.readyQueue = newReadyQueue;
+      this.setUIReadyQueue(newReadyQueue);
       return
     }
     for (let i = 0; i < this.readyQueue.length; i++) {
