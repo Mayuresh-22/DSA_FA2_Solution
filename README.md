@@ -1,4 +1,4 @@
-# 009_DSA_FA2
+# DSA_FA2_Solution
 This repository contains the solution for the DSA's FA2 activity.
 
 ### Stack solution (Function call visualization)
