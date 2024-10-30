@@ -34,6 +34,7 @@ func main () {
 Make sure you have cloned the entire repo
 ```
 cd /stack_solution
+npm i
 npm run dev
 ```
 
@@ -50,6 +51,7 @@ The folder `/queue_solution` contains the code for the queue-based CPU schedulin
 Make sure you have cloned the entire repo
 ```
 cd /queue_solution
+npm i
 npm run dev
 ```
 
